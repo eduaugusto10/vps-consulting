@@ -4,13 +4,13 @@ import com.vps.ordermanagement.dto.OrderItemDTO;
 import com.vps.ordermanagement.dto.OrderRequestDTO;
 import com.vps.ordermanagement.dto.OrderResponseDTO;
 import com.vps.ordermanagement.dto.OrderStatusUpdateDTO;
-import com.vps.ordermanagement.model.enums.OrderStatus;
 import com.vps.ordermanagement.exception.InsufficientCreditException;
 import com.vps.ordermanagement.exception.InvalidOrderStatusException;
 import com.vps.ordermanagement.exception.ResourceNotFoundException;
 import com.vps.ordermanagement.model.Order;
 import com.vps.ordermanagement.model.OrderItem;
 import com.vps.ordermanagement.model.Partner;
+import com.vps.ordermanagement.model.enums.OrderStatus;
 import com.vps.ordermanagement.repository.OrderRepository;
 import com.vps.ordermanagement.repository.PartnerRepository;
 import com.vps.ordermanagement.service.impl.OrderServiceImpl;
@@ -23,14 +23,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class OrderServiceTest {
@@ -43,6 +47,9 @@ public class OrderServiceTest {
 
     @Mock
     private PartnerService partnerService;
+
+    @Mock
+    private KafkaProducerService kafkaProducerService;
 
     @Mock
     private NotificationService notificationService;
@@ -132,7 +139,7 @@ public class OrderServiceTest {
         assertEquals(OrderStatus.PENDING, result.getStatus());
         assertEquals(new BigDecimal("200.00"), result.getTotalValue());
         assertEquals(1, result.getItems().size());
-        
+
         verify(notificationService, times(1)).notifyOrderStatusChange(any(Order.class));
     }
 
@@ -144,7 +151,7 @@ public class OrderServiceTest {
         assertThrows(InsufficientCreditException.class, () -> {
             orderService.createOrder(orderRequestDTO);
         });
-        
+
         verify(orderRepository, never()).save(any(Order.class));
     }
 
@@ -187,7 +194,7 @@ public class OrderServiceTest {
         assertThrows(InvalidOrderStatusException.class, () -> {
             orderService.updateOrderStatus(1L, statusUpdateDTO);
         });
-        
+
         verify(orderRepository, never()).save(any(Order.class));
     }
 
@@ -224,7 +231,7 @@ public class OrderServiceTest {
         assertThrows(InvalidOrderStatusException.class, () -> {
             orderService.cancelOrder(1L);
         });
-        
+
         verify(orderRepository, never()).save(any(Order.class));
     }
 } 
